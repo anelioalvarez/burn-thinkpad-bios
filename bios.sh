@@ -1,27 +1,31 @@
 #!/bin/bash
 
+ISO=$1
+DEVICE=$2
+IMG=${ISO##*/}
+IMG=${IMG%.*}.img
+
 print_help() {
     echo "Grabador de BIOS Lenovo Thinkpad en un medio USB."
     echo
     echo "Usage: $0 BIOS_ISO DEVICE"
     echo
     echo "- BIOS_ISO: archivo .iso que contiene la bios."
-    echo "- DEVICE  : dispositivo donde se quiere grabar la bios para bootear."
+    echo "- DEVICE  : dispositivo USB donde se quiere grabar la bios para bootear."
     echo
 }
 
 clean_and_exit() {
-    echo
-    echo
+    echo; echo
     echo "----- Limpiando archivos.."
     rm -f geteltorito
+    rm -f $IMG
     echo "listo"
     exit $1
 }
 
 download_geteltorito() {
-    echo
-    echo
+    echo; echo
     echo "----- Descargando herramienta geteltorito.."
     wget https://userpages.uni-koblenz.de/~krienke/ftp/noarch/geteltorito/geteltorito/geteltorito
     
@@ -36,8 +40,9 @@ download_geteltorito() {
 }
 
 extract_image_from_iso() {
-    ISO=$1
+    geteltorito -o $IMG $ISO
 }
+
 
 # Parseo de argumentos y verificacion de acceso root
 if [ $# -eq 1 ] && ([ "$1" == "--help" ] || [ "$1" == "-h" ])
@@ -61,14 +66,17 @@ then
     exit 1
 fi
 
-ISO=$1
-DEV=$2
-
 # Confirmacion antes de ejecutar
+echo "Se procede a grabar el archivo: $ISO"
+echo "en el dispositivo USB: $DEVICE"
 echo
-echo "Se grabara el archivo: $ISO"
-echo "en el dispositivo    : $DEV"
+echo "IMPORTANTE: corrobore que el nombre del dispositivo USB ingresado"
+echo "            coincida con alguno de los que se encuentran disponibles"
+echo "            por ejemplo /dev/sda, /dev/sdb, etc."
+echo "USB disponibles:"
+grep -Ff <(hwinfo --disk --short) <(hwinfo --usb --short) | grep "/dev/sd[a-z]" --color=auto
 echo
+
 while true
 do
     read -p "Desea continuar? [y/n]: " -n 1 -r
