@@ -16,16 +16,16 @@ print_help() {
 }
 
 clean_and_exit() {
-    echo; echo
-    echo "----- Limpiando archivos.."
+    echo
+    echo "----- Limpiando archivos temporales.."
     rm -f geteltorito
     rm -f $IMG
-    echo "listo"
+    echo "OK"
     exit $1
 }
 
 download_geteltorito() {
-    echo; echo
+    echo
     echo "----- Descargando herramienta geteltorito.."
     wget https://userpages.uni-koblenz.de/~krienke/ftp/noarch/geteltorito/geteltorito/geteltorito
     
@@ -36,11 +36,20 @@ download_geteltorito() {
     fi
     
     chmod +x geteltorito
-    echo "listo"
+    echo "OK"
 }
 
 extract_image_from_iso() {
-    geteltorito -o $IMG $ISO
+    echo
+    echo "----- Extrayendo la imagen desde el arhivo ISO.."
+    ./geteltorito -o $IMG $ISO
+
+    if [ $? -ne 0 ]
+    then
+        echo "----- ERROR: el archivo ISO ingresado no es valido."
+        clean_and_exit 1
+    fi
+    echo "OK"
 }
 
 
@@ -67,10 +76,10 @@ then
 fi
 
 # Confirmacion antes de ejecutar
-echo "Se procede a grabar el archivo: $ISO"
+echo "Se procedera a grabar el archivo: $ISO"
 echo "en el dispositivo USB: $DEVICE"
 echo
-echo "IMPORTANTE: corrobore que el nombre del dispositivo USB ingresado"
+echo "IMPORTANTE: corrobore que el nombre del dispositivo USB ingresado ($DEVICE)"
 echo "            coincida con alguno de los que se encuentran disponibles"
 echo "            por ejemplo /dev/sda, /dev/sdb, etc."
 echo "USB disponibles:"
@@ -89,5 +98,7 @@ do
 done
 
 download_geteltorito
+
+extract_image_from_iso
 
 clean_and_exit 0
