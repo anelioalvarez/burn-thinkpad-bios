@@ -1,10 +1,5 @@
 #!/bin/bash
 
-ISO=$1
-DEVICE=$2
-IMG=${ISO##*/}
-IMG=${IMG%.*}.img
-
 print_help() {
     echo "Grabador de BIOS Lenovo Thinkpad en un medio USB."
     echo
@@ -17,39 +12,62 @@ print_help() {
 
 clean_and_exit() {
     echo
-    echo "----- Limpiando archivos temporales.."
-    rm -f geteltorito
+    echo "### Limpiando archivos temporales.."
+    rm -f geteltorito*
     rm -f $IMG
-    echo "OK"
+    echo "### OK"
+
+    if [ $1 -eq 0 ]
+    then
+        echo
+        echo "COMPLETADO CON EXTIO."
+    fi
     exit $1
 }
 
 download_geteltorito() {
     echo
-    echo "----- Descargando herramienta geteltorito.."
+    echo "### Descargando herramienta geteltorito.."
     wget https://userpages.uni-koblenz.de/~krienke/ftp/noarch/geteltorito/geteltorito/geteltorito
     
     if [ $? -ne 0 ]
     then
-        echo "----- ERROR: no se pudo realizar la descarga de geteltorito."
+        echo "### ERROR: no se pudo realizar la descarga de geteltorito."
         exit 1
     fi
     
     chmod +x geteltorito
-    echo "OK"
+    echo "### OK"
 }
 
 extract_image_from_iso() {
     echo
-    echo "----- Extrayendo la imagen desde el arhivo ISO.."
+    echo "### Extrayendo la imagen desde el arhivo ISO.."
     ./geteltorito -o $IMG $ISO
 
     if [ $? -ne 0 ]
     then
-        echo "----- ERROR: el archivo ISO ingresado no es valido."
+        echo "### ERROR: el archivo ISO ingresado no es valido."
         clean_and_exit 1
     fi
-    echo "OK"
+    echo "### OK"
+}
+
+write_image_toUSB() {
+    echo
+    echo "### Desmontando $DEVICE..."
+    ls ${DEVICE}?* | xargs -n1 umount -l
+    echo "### OK"; echo
+
+    echo "### Escribiendo la imagen en dispositivo USB $DEVICE.."
+    dd if=$IMG of=$DEVICE bs=64K status=progress
+
+    if [ $? -ne 0 ]
+    then
+        echo "### ERROR: no se pudo escribir la imagen."
+        clean_and_exit 1
+    fi
+    echo "### OK"
 }
 
 
@@ -70,18 +88,23 @@ then
 elif [ ${1##*.} != "iso" ]
 then
     print_help
-    echo "----- ERROR: el argumento '$1' debe ser un archivo .iso"
+    echo "### ERROR: el argumento '$1' debe ser un archivo .iso"
     echo
     exit 1
 fi
+
+ISO=$1
+DEVICE=$2
+IMG=${ISO##*/}    # archivo base
+IMG=${IMG%.*}.img # extension iso -> img
 
 # Confirmacion antes de ejecutar
 echo "Se procedera a grabar el archivo: $ISO"
 echo "en el dispositivo USB: $DEVICE"
 echo
 echo "IMPORTANTE: corrobore que el nombre del dispositivo USB ingresado ($DEVICE)"
-echo "            coincida con alguno de los que se encuentran disponibles"
-echo "            por ejemplo /dev/sda, /dev/sdb, etc."
+echo "            coincida con alguno de los que se encuentran disponibles abajo."
+echo "            Por ejemplo /dev/sda, /dev/sdb, etc."
 echo "USB disponibles:"
 grep -Ff <(hwinfo --disk --short) <(hwinfo --usb --short) | grep "/dev/sd[a-z]" --color=auto
 echo
@@ -100,5 +123,7 @@ done
 download_geteltorito
 
 extract_image_from_iso
+
+write_image_toUSB
 
 clean_and_exit 0
