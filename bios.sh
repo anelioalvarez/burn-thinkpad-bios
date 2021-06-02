@@ -76,12 +76,9 @@ select_USBdevice() {
         exit 1
     fi
     
-    mapfile -t USBS < <(awk '{print $2}' <<< $DEVICES_INFO)
+    mapfile -t USBS < <(echo "$DEVICES_INFO" | awk '{print $2}')
 
-    #for elem in "${USBS[@]}"
-    #do
-    #	echo "$elem"
-    #done
+    #for dev in "${USBS[@]}"; do echo "$dev"; done
 
     # Menu de opciones
     echo "USBs encontrados: ${#USBS[@]}"
@@ -124,7 +121,7 @@ if [ $# -lt 1 ]; then
 elif [ $# -eq 1 ] && ([ "$1" == "--help" ] || [ "$1" == "-h" ]); then
     print_help
     exit 0
-elif [[ $EUID -ne 0 ]]; then
+elif [ $EUID -ne 0 ]; then
     echo "### AVISO: Este script debe ser ejecutado como usuario root"
     echo "Ejecute sudo $0 ..."
     exit 1
@@ -142,8 +139,7 @@ fi
 
 
 ISO=$1
-IMG=${ISO##*/}    # archivo base
-IMG=${IMG%.*}.img # extension iso -> img
+IMG=$(basename $ISO); IMG=${IMG%.*}.img # archivo base iso -> img
 
 select_USBdevice
 
